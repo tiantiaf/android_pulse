@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    tools:context="com.example.tiantiaf.pulse.MainActivity">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/white"
+        android:layout_margin="@dimen/margin_content">
+
+        <LinearLayout android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_content_small">
+
+            <Space android:layout_width="@dimen/margin_empty"
+                android:layout_height="20dp"/>
+        </LinearLayout>
+
+        <LinearLayout android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_content_small">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_weight="1"
+                android:layout_height="@dimen/button_size"
+                android:textSize="@dimen/button_text_size"
+                android:text="@string/START_SCAN"
+                android:textColor="@android:color/white"
+                android:id="@+id/start_scan_btn"
+                android:background="@color/colorPrimary"/>
+
+        </LinearLayout>
+
+        <LinearLayout android:orientation="vertical"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_content_small">
+
+            <Space android:layout_width="@dimen/margin_empty"
+                android:layout_height="20dp"/>
+        </LinearLayout>
+
+        <LinearLayout android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_content_small">
+
+            <TextView
+                android:text=""
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textSize="20dp"
+                android:id="@+id/bt_device_found" />
+        </LinearLayout>
+
+        <LinearLayout android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/margin_content_small">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_weight="1"
+                android:layout_height="@dimen/button_size"
+                android:textSize="@dimen/button_text_size"
+                android:text="@string/START_SCAN"
+                android:textColor="@android:color/white"
+                android:id="@+id/start_read_btn"
+                android:background="@color/colorPrimary"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+</android.support.design.widget.CoordinatorLayout>
