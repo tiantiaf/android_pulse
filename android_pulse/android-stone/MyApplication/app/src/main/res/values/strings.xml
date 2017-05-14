@@ -23,20 +23,15 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
-    <string name="MOTOR_SET_Mode1">Motor SET ON Mode1</string>
-    <string name="MOTOR_SET_Mode2">Motor SET ON Mode2</string>
-    <string name="MOTOR_SET_Mode3">Motor SET ON Mode3</string>
-    <string name="MOTOR_SET_Mode4">Motor SET ON Mode4</string>
-    <string name="MOTOR_SET_OFF">Motor SET Off</string>
-
     <!-- Menu items -->
     <string name="menu_connect">Connect</string>
     <string name="menu_disconnect">Disconnect</string>
-    <string name="menu_scan">Scan</string>
+    <string name="menu_scan">Start Scan</string>
     <string name="menu_stop">Stop</string>
-    <string name="menu_tare">Tare NOT available</string>
+    <string name="menu_exit">Exit</string>
 
     <string name="START_SCAN">Start Scan</string>
     <string name="START_READ">Start Read</string>
+    <string name="GET_SETTING">Get Settings</string>
 
 </resources>

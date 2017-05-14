@@ -23,12 +23,13 @@ public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
     public int MTUSize               = 23;
 
-    private BluetoothGattCharacteristic CTR_PULSE_Characteristic;
+    private BluetoothGattCharacteristic CTR_PULSE_SETTING_Characteristic;
+    private BluetoothGattCharacteristic CTR_PULSE_DATA_Characteristic;
     private BluetoothManager            mBluetoothManager;
     private BluetoothAdapter            mBluetoothAdapter;
     private String                      mBluetoothDeviceAddress;
     private BluetoothGatt               mBluetoothGatt;
-    private int mConnectionState                      = STATE_DISCONNECTED;
+    public int mConnectionState                       = STATE_DISCONNECTED;
     private static final int STATE_DISCONNECTED     = 0;
     private static final int STATE_CONNECTING       = 1;
     private static final int STATE_CONNECTED        = 2;
@@ -44,17 +45,24 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
     public final static String ACTION_SETTINGS_AVAILABLE=
             "com.example.bluetooth.le.ACTION_SETTINGS_AVAILABLE";
+
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
     public final static String EXTRA_LENGTH=
             "com.example.bluetooth.le.EXTRA_LENGTH";
     public final static UUID BLEServiceUUID =
             UUID.fromString(SampleGattAttributes.BLEService);
-    public final static UUID  CTR_STONE_MOTOR_UUID =
+    public final static UUID  CTR_PULSE_SETTING_UUID =
             UUID.fromString(SampleGattAttributes.CTR_PULSE);
+    public final static UUID  CTR_PULSE_DATA_UUID =
+            UUID.fromString(SampleGattAttributes.CTR_PULSE_DATA);
     public final static UUID  NotificationUUID =
             UUID.fromString(SampleGattAttributes.Notification);
 
+    public final static int StreamingChar = 0;
+    public final static int SettingSyncChar = 1;
+
+    /* Connection State Change Callback */
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
@@ -79,7 +87,8 @@ public class BluetoothLeService extends Service {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 BluetoothGattService service = gatt.getService(BLEServiceUUID);
-                CTR_PULSE_Characteristic = service.getCharacteristic(CTR_STONE_MOTOR_UUID);
+                CTR_PULSE_SETTING_Characteristic = service.getCharacteristic(CTR_PULSE_SETTING_UUID);
+                CTR_PULSE_DATA_Characteristic = service.getCharacteristic(CTR_PULSE_DATA_UUID);
 
                 broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
             } else {
@@ -92,7 +101,7 @@ public class BluetoothLeService extends Service {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             byte[] data = characteristic.getValue();
-            //broadcastUpdate(ACTION_DATA_AVAILABLE, data, data.length);
+            broadcastUpdate(ACTION_DATA_AVAILABLE, data, data.length);
         }
 
         /*This is function is used to read characteristic, when read success, this function will be called.
@@ -103,10 +112,23 @@ public class BluetoothLeService extends Service {
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
+
                 byte[] data = characteristic.getValue();
-                Log.d(TAG, "onCharacteristicRead: " + data[0] + "; " + data[1] + "; " + data[2]
-                        + "; " + data[3]);
-                broadcastUpdate(ACTION_DATA_AVAILABLE, data, data.length);
+
+                if (characteristic.getUuid().equals(CTR_PULSE_SETTING_UUID)) {
+                    broadcastUpdate(ACTION_SETTINGS_AVAILABLE, data, data.length);
+
+                    Log.d(TAG, "Pulse Setting Read: " + data[0] + "; " + data[1] + "; " + data[2]
+                            + "; " + data[3]);
+
+                } else if (characteristic.getUuid().equals(CTR_PULSE_DATA_UUID)) {
+                    broadcastUpdate(ACTION_DATA_AVAILABLE, data, data.length);
+
+                    Log.d(TAG, "Pulse Data Read: " + data[0] + "; " + data[1] + "; " + data[2]
+                            + "; " + data[3]);
+                }
+
+
             }
         }
 
@@ -117,7 +139,7 @@ public class BluetoothLeService extends Service {
                                           BluetoothGattCharacteristic characteristic,
                                           int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                mBluetoothGatt.readCharacteristic(CTR_PULSE_Characteristic);
+                mBluetoothGatt.readCharacteristic(CTR_PULSE_SETTING_Characteristic);
             }
         }
 
@@ -139,7 +161,6 @@ public class BluetoothLeService extends Service {
             return BluetoothLeService.this;
         }
     }
-
 
     public BluetoothLeService() {
 
@@ -213,7 +234,7 @@ public class BluetoothLeService extends Service {
         return true;
     }
 
-    /*Disconnects an existing connection or cancel a pending connection.*/
+    /* Disconnects an existing connection or cancel a pending connection.*/
     public void disconnect() {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -257,8 +278,8 @@ public class BluetoothLeService extends Service {
             return false;
         }
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-        /*
-        BluetoothGattDescriptor descriptor = CTR_LEDCharacteristic.getDescriptor(NotificationUUID);
+
+        BluetoothGattDescriptor descriptor = CTR_PULSE_DATA_Characteristic.getDescriptor(NotificationUUID);
         try {
             if (enabled) {
                 descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
@@ -269,10 +290,40 @@ public class BluetoothLeService extends Service {
         }
         catch (Exception e) {
             Log.e(TAG, e + "");
-        }*/
+        }
         return false;
     }
 
+    /*Process the data received from BLE characteristics and send it to activity*/
+    private void broadcastUpdate(final String action,
+                                 final byte[] data, final int length) {
+        final Intent intent = new Intent(action);
+        if (data != null && data.length > 0) {
+
+            final StringBuilder stringBuilder = new StringBuilder(data.length);
+            for (byte byteChar : data)
+                stringBuilder.append(String.format("%02X ", byteChar));
+            String dataString = new String(data) + "" + stringBuilder.toString();
+            String dataStringProcessed = dataString.substring(length, dataString.length());
+            String[] dataStringArray = dataStringProcessed.split("\\s+");
+            intent.putExtra(EXTRA_DATA, dataStringArray);
+             Log.d("BroadcastUpdate",action);
+            sendBroadcast(intent);
+
+            //intent.putExtra(EXTRA_DATA, data);
+            //sendBroadcast(intent);
+        }
+    }
+
+    /*close notification*/
+    public void closeNotification()
+    {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        mBluetoothGatt.setCharacteristicNotification(CTR_PULSE_DATA_Characteristic, false);
+    }
 
     /*Change to the HIGH speed mode, larger power consumption and ONLY USED IN ANDROID 5.0+*/
     public void setPriorityHIGH()
@@ -290,56 +341,17 @@ public class BluetoothLeService extends Service {
         }
     }
 
-    /*Process the data received from BLE characteristics and send it to activity*/
-    private void broadcastUpdate(final String action,
-                                 final byte[] data, final int length) {
-        final Intent intent = new Intent(action);
-        if (data != null && data.length > 0) {
-            final StringBuilder stringBuilder = new StringBuilder(data.length);
-            for (byte byteChar : data)
-                stringBuilder.append(String.format("%02X ", byteChar));
-            String dataString = new String(data) + "" + stringBuilder.toString();
-            String dataStringProcessed = dataString.substring(length, dataString.length());
-            String[] dataStringArray = dataStringProcessed.split("\\s+");
-            intent.putExtra(EXTRA_DATA, data);
-            sendBroadcast(intent);
-            if (dataStringArray[0].equals("FF")) {
-                sendBroadcast(intent);
-            }else {
-                if (dataStringArray.length==(MTUSize-3)) {
-                    dataStringArray[0] = "FF";
-                }
-                sendBroadcast(intent);
-            }
+    /*Get the BLE to Tablet characteristic*/
+    public BluetoothGattCharacteristic getCharacteristic(int characteristic){
+        switch(characteristic){
+            case SettingSyncChar:
+                return CTR_PULSE_SETTING_Characteristic;
+            case StreamingChar:
+                return CTR_PULSE_DATA_Characteristic;
+
+            default:
+                return null;
         }
     }
-
-
-    /*Get the tablet to BLE characteristic*/
-    public BluetoothGattCharacteristic getWriteChar() {
-
-        return CTR_PULSE_Characteristic;
-    }
-
-    /*Get the tablet to BLE characteristic*/
-    public BluetoothGattCharacteristic getCTR_PULSECharacteristic() {
-        return CTR_PULSE_Characteristic;
-    }
-
-    /*Get the 8051 chip settings characteristic*/
-    public BluetoothGattCharacteristic getSettings() {
-        return CTR_PULSE_Characteristic;
-    }
-
-    /*close notification*/
-    public void closeNotification()
-    {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-
-    }
-
 
 }

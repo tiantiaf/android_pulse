@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="f2497614-773b-49d3-87b5-3b394d787b20" name="Default" comment="" />
-    <ignored path="android_stone.iws" />
+    <list default="true" id="bc50ce5e-cd2e-4f0b-add0-1ab67f21af9a" name="Default" comment="" />
+    <ignored path="android_pulse.iws" />
     <ignored path=".idea/workspace.xml" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -17,7 +17,10 @@
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FavoritesManager">
-    <favorites_list name="android_stone" />
+    <favorites_list name="android_pulse" />
+  </component>
+  <component name="FileEditorManager">
+    <leaf />
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -25,6 +28,13 @@
   <component name="GradleLocalSettings">
     <option name="externalProjectsViewState">
       <projects_view />
+    </option>
+  </component>
+  <component name="IdeDocumentHistory">
+    <option name="CHANGED_PATHS">
+      <list>
+        <option value="$PROJECT_DIR$/android_pulse/android-stone/MyApplication/app/src/main/java/com/example/tiantiaf/pulse/BluetoothLeService.java" />
+      </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
@@ -58,17 +68,16 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="PackagesPane" />
       <pane id="Scratches" />
-      <pane id="ProjectPane" />
-      <pane id="Scope" />
       <pane id="AndroidView">
         <subPane />
       </pane>
-      <pane id="PackagesPane" />
+      <pane id="ProjectPane" />
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="android.sdk.path" value="$USER_HOME$/AppData/Local/Android/Sdk" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="settings.editor.selected.configurable" value="vcs.Git" />
     <property name="settings.editor.splitter.proportion" value="0.2" />
@@ -164,11 +173,11 @@
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
-      <changelist id="f2497614-773b-49d3-87b5-3b394d787b20" name="Default" comment="" />
-      <created>1494058366237</created>
+      <changelist id="bc50ce5e-cd2e-4f0b-add0-1ab67f21af9a" name="Default" comment="" />
+      <created>1494228568348</created>
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
-      <updated>1494058366237</updated>
+      <updated>1494228568348</updated>
     </task>
     <servers />
   </component>
@@ -209,5 +218,15 @@
   <component name="XDebuggerManager">
     <breakpoint-manager />
     <watches-manager />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/android_pulse/android-stone/MyApplication/app/src/main/java/com/example/tiantiaf/pulse/BluetoothLeService.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="263">
+          <caret line="338" column="19" selection-start-line="338" selection-start-column="19" selection-end-line="338" selection-end-column="19" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
   </component>
 </project>

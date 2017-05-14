@@ -110,10 +110,7 @@ public class DeviceControlActivity extends FragmentActivity {
     /*Send "Get settings requirement to BLE service*/
     private void GetSettings() {
         mBluetoothLeService.closeNotification(); // pause notification sending
-        BluetoothGattCharacteristic temp = mBluetoothLeService.getSettings();
-        if (temp != null) {
-            mBluetoothLeService.readCharacteristic(temp);//init command to read the Characteristic
-        }
+
 
 
 
@@ -262,29 +259,11 @@ public class DeviceControlActivity extends FragmentActivity {
 
     }
 
-    private void sendChar () {
-        BluetoothGattCharacteristic temp = mBluetoothLeService.getWriteChar();
-        if (temp != null) {
-            mBluetoothLeService.readCharacteristic(temp);
-        } else {
-            mDataOutput.setText("No Chara Find");
-        }
-    }
-
     /*This function is use to send the data out. Requires to call from mGattUpdateReceiver Success to read.*/
     private void WriteChar(int[] dataTrans)
     {
-        BluetoothGattCharacteristic temp = mBluetoothLeService.getCTR_PULSECharacteristic();// get Characteristic from service
-        if (temp != null) {
+        BluetoothGattCharacteristic temp;// get Characteristic from service
 
-            byte[] dataTransByte = new byte[dataTrans.length];
-            for (int i = 0; i < dataTrans.length; i++) {
-                dataTransByte[i] = (byte) dataTrans[i];
-            }
-            temp.setValue(dataTransByte);
-            temp.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);  //send out
-            mBluetoothLeService.writeCharacteristic(temp);    //init command to write the Characteristic
-        }
     }
 
     @Override
