@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private boolean mConnected = false;
     private boolean isStartReading = false;
     private boolean mScanning = false;
+    private boolean mDiscovered = false;
 
     private LeDeviceListAdapter mLeDeviceListAdapter;
     private static final long SCAN_PERIOD = 10000;
@@ -99,14 +100,22 @@ public class MainActivity extends AppCompatActivity {
     private GraphicalView graphicalView;
     private int numberOfSample = 5;
 
+    private XYMultipleSeriesRenderer hrvRenderer = new XYMultipleSeriesRenderer();
+    private XYMultipleSeriesDataset hrvDataset = new XYMultipleSeriesDataset();
+    private XYSeries hrvSeries = new XYSeries("BLUE", 0);
+    private GraphicalView hrvGraphicalView;
+    private int numberOfHRVSampel = 30;
+
     private long timeFromStart;
     private int timeStart = 0;
     private int[] sensorData = new int[5];
+    private int[] filterData = new int[3];
+
+    private HRV_Processing hrv_processing;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getActionBar().setTitle("Pulse");
         setContentView(R.layout.activity_main);
         initUI();
 
@@ -115,12 +124,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mBluetoothLeService.mConnectionState == STATE_CONNECTED)
+        if (mConnected)
         {
-            mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.getCharacteristic(StreamingChar), false);
+            if(mDiscovered) {
+                mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.getCharacteristic(StreamingChar), false);            }
             mBluetoothLeService.disconnect();
         }
-
         unbindService(mServiceConnection);
 
     }
@@ -145,10 +154,13 @@ public class MainActivity extends AppCompatActivity {
             case R.id.menu_scan:
                 mLeDeviceListAdapter.clear();
                 scanLeDevice(true);
+                break;
             case R.id.menu_stop:
                 scanLeDevice(false);
+                break;
             case R.id.menu_exit:
                 this.finish();
+                break;
         }
 
         return super.onOptionsItemSelected(item);
@@ -190,6 +202,8 @@ public class MainActivity extends AppCompatActivity {
                             mDeviceAddress = device.getAddress();
                             mBluetoothAdapter.stopLeScan(mLeScanCallback);
 
+                            connect_Btn.setBackgroundColor(Color.rgb(63, 81, 181));
+                            connect_Btn.setEnabled(true);
 
                         }
                         Log.d("DEVICE", "Device Name: " + device.getName() + "\n");
@@ -220,23 +234,40 @@ public class MainActivity extends AppCompatActivity {
 
     /*This function is used to received the broadcast data from BluetoothLeService*/
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
-                bt_found_Tv.setText("BT Pulse Device Found and Connected!");
 
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
+                start_read_Btn.setBackgroundColor(Color.GRAY);
+                start_read_Btn.setEnabled(false);
+
+                get_setting_Btn.setBackgroundColor(Color.GRAY);
+                get_setting_Btn.setEnabled(false);
+
+                bt_found_Tv.setText("BT Pulse Device Disconnected!");
+
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
+
+                mDiscovered = true;
                 mBluetoothLeService.closeNotification();
+                bt_found_Tv.setText("BT Pulse Device Found and Connected!");
+
+                start_read_Btn.setBackgroundColor(Color.rgb(63, 81, 181));
                 start_read_Btn.setVisibility(View.VISIBLE);
                 start_read_Btn.setEnabled(true);
                 start_read_Btn.setText("Start Read");
 
+                get_setting_Btn.setBackgroundColor(Color.rgb(63, 81, 181));
                 get_setting_Btn.setVisibility(View.VISIBLE);
                 get_setting_Btn.setEnabled(true);
+
+                connect_Btn.setText("Disconnect Pulse Device!");
+
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)){
                 String[] dataStringArray = intent.getStringArrayExtra(BluetoothLeService.EXTRA_DATA);
 
@@ -280,7 +311,6 @@ public class MainActivity extends AppCompatActivity {
     private void initUI()
     {
         /* Init Graphic Interface */
-        start_scan_Btn  = (Button) findViewById(R.id.start_scan_btn);
         get_setting_Btn = (Button) findViewById(R.id.get_setting_btn);
         start_read_Btn  = (Button) findViewById(R.id.start_read_btn);
         connect_Btn     = (Button) findViewById(R.id.connect_btn);
@@ -290,31 +320,36 @@ public class MainActivity extends AppCompatActivity {
         mLeDeviceListAdapter = new LeDeviceListAdapter();
         mHandler = new Handler();
 
-        start_read_Btn.setVisibility(View.INVISIBLE);
+        start_read_Btn.setBackgroundColor(Color.GRAY);
         start_read_Btn.setEnabled(false);
 
-        get_setting_Btn.setVisibility(View.INVISIBLE);
+        get_setting_Btn.setBackgroundColor(Color.GRAY);
         get_setting_Btn.setEnabled(false);
 
-        connect_Btn.setVisibility(View.INVISIBLE);
+        connect_Btn.setBackgroundColor(Color.GRAY);
         connect_Btn.setEnabled(false);
 
         bt_found_Tv.setText("No BT Pulse Device Found!");
 
-        start_scan_Btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-
-            }
-        });
-
         connect_Btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
-                bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+                if(!mConnected) {
+                    Intent gattServiceIntent = new Intent(getApplicationContext(), BluetoothLeService.class);
+                    bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
-                registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+                    registerReceiver(mGattUpdateReceiver, makeGattUpdateIntentFilter());
+
+                } else {
+                    if (mBluetoothLeService.mConnectionState == STATE_CONNECTED)
+                    {
+                        mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.getCharacteristic(StreamingChar), false);
+                        mBluetoothLeService.disconnect();
+                    }
+
+                    unbindService(mServiceConnection);
+                    connect_Btn.setText("Connect to Pulse Device!");
+                }
             }
         });
 
@@ -335,7 +370,6 @@ public class MainActivity extends AppCompatActivity {
                     mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.getCharacteristic(StreamingChar), false);
                 } else {
                     /* Enable Reading */
-
                     start_read_Btn.setText("Stop Read");
                     mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.getCharacteristic(StreamingChar), true);
                 }
@@ -345,7 +379,11 @@ public class MainActivity extends AppCompatActivity {
         });
 
         initBluetooth();
-        initGraph();
+        initPulseGraph();
+        initHRVGraph();
+
+        hrv_processing = new HRV_Processing();
+        hrv_processing.initParameters();
 
     }
 
@@ -379,26 +417,29 @@ public class MainActivity extends AppCompatActivity {
         //scanLeDevice(true);
     }
 
-    private void initGraph() {
+    private void initPulseGraph() {
         renderer.setAxisTitleTextSize(16);
         renderer.setChartTitleTextSize(20);
         renderer.setLabelsTextSize(15);
         renderer.setPointSize(5f);
         renderer.setMargins(new int[]{20, 30, 15, 20});
         renderer.setShowLegend(false);
+
         XYSeriesRenderer r = new XYSeriesRenderer();
         r.setColor(Color.RED);
         r.setLineWidth(3f);
         renderer.addSeriesRenderer(r);
+
         int length = renderer.getSeriesRendererCount();
         for (int i = 0; i < length; i++) {
             ((XYSeriesRenderer) renderer.getSeriesRendererAt(i))
                     .setFillPoints(true);
         }
+
         renderer.setXLabelsColor(Color.BLACK);
         renderer.setYLabelsColor(0, Color.BLACK);
-        renderer.setYAxisMin(900);
-        renderer.setYAxisMax(1200);
+        renderer.setYAxisMin(1000);
+        renderer.setYAxisMax(1080);
         renderer.setAxesColor(Color.BLACK);
         renderer.setLabelsColor(Color.BLACK);
         renderer.setMarginsColor(Color.WHITE);
@@ -409,17 +450,70 @@ public class MainActivity extends AppCompatActivity {
         renderer.setXLabelsAlign(Align.RIGHT);
         renderer.setYLabelsAlign(Align.RIGHT);
         renderer.setZoomButtonsVisible(false);
+        renderer.setZoomEnabled(false, false);
         dataset = new XYMultipleSeriesDataset();
         series = new XYSeries("");
         renderer.setXAxisMin(0);
+        renderer.setXAxisMax(5);
         renderer.setSelectableBuffer(50);
         renderer.setXAxisMax(numberOfSample);
+        renderer.setInScroll(false);
+        renderer.setPanEnabled(false);
         series.add(0.00,0);
 
         dataset.addSeries(series);
         LinearLayout layout = (LinearLayout) findViewById(R.id.dataChart);
         graphicalView = ChartFactory.getLineChartView(this, dataset, renderer);
         layout.addView(graphicalView);
+    }
+
+    private void initHRVGraph() {
+        hrvRenderer.setAxisTitleTextSize(16);
+        hrvRenderer.setChartTitleTextSize(20);
+        hrvRenderer.setLabelsTextSize(15);
+        hrvRenderer.setPointSize(5f);
+        hrvRenderer.setMargins(new int[]{20, 30, 15, 20});
+        hrvRenderer.setShowLegend(false);
+
+        XYSeriesRenderer r = new XYSeriesRenderer();
+        r.setColor(Color.RED);
+        r.setLineWidth(3f);
+        hrvRenderer.addSeriesRenderer(r);
+
+        int length = hrvRenderer.getSeriesRendererCount();
+        for (int i = 0; i < length; i++) {
+            ((XYSeriesRenderer) hrvRenderer.getSeriesRendererAt(i))
+                    .setFillPoints(true);
+        }
+
+        hrvRenderer.setXLabelsColor(Color.BLACK);
+        hrvRenderer.setYLabelsColor(0, Color.BLACK);
+        hrvRenderer.setYAxisMin(600);
+        hrvRenderer.setYAxisMax(1000);
+        hrvRenderer.setAxesColor(Color.BLACK);
+        hrvRenderer.setLabelsColor(Color.BLACK);
+        hrvRenderer.setMarginsColor(Color.WHITE);
+        hrvRenderer.setXLabels(11);
+        hrvRenderer.setXTitle("seconds");
+        hrvRenderer.setYLabels(10);
+        hrvRenderer.setShowGrid(true);
+        hrvRenderer.setXLabelsAlign(Align.RIGHT);
+        hrvRenderer.setYLabelsAlign(Align.RIGHT);
+        hrvRenderer.setZoomButtonsVisible(false);
+        hrvRenderer.setZoomEnabled(false, false);
+        hrvDataset = new XYMultipleSeriesDataset();
+        hrvSeries = new XYSeries("");
+        hrvRenderer.setXAxisMin(0);
+        hrvRenderer.setSelectableBuffer(50);
+        hrvRenderer.setXAxisMax(numberOfHRVSampel);
+        hrvRenderer.setInScroll(false);
+        hrvRenderer.setPanEnabled(false);
+        hrvSeries.add(0.00,0);
+
+        hrvDataset.addSeries(hrvSeries);
+        LinearLayout layout = (LinearLayout) findViewById(R.id.hrvChart);
+        hrvGraphicalView = ChartFactory.getLineChartView(this, hrvDataset, hrvRenderer);
+        layout.addView(hrvGraphicalView);
     }
 
     private void FlashData(String[] dataStringArray) {
@@ -435,8 +529,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("Packet_Data", i + " " + dataStringArray[i]);
             }
         }
-        Log.d("Packet_Data", "onCharacteristicRead: " + dataReceived_DEC[0] + "; " + dataReceived_DEC[1]
-                + "; "+ dataReceived_DEC[2] + "; " + dataReceived_DEC[5] + "; " + dataReceived_DEC[6]);
+        //Log.d("Packet_Data", "onCharacteristicRead: " + dataReceived_DEC[0] + "; " + dataReceived_DEC[1]
+                //+ "; "+ dataReceived_DEC[2] + "; " + dataReceived_DEC[5] + "; " + dataReceived_DEC[6]);
 
         int timeCurrent = dataReceived_DEC[TIME_FIRST_INDEX] + (dataReceived_DEC[TIME_SECOND_INDEX] << 8)
                 + (dataReceived_DEC[TIME_THIRD_INDEX] << 16) + (dataReceived_DEC[TIME_FORTH_INDEX] << 24);
@@ -448,13 +542,25 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < sensorPerPacket; i++) {
             sensorData[i] = dataReceived_DEC[SENSOR1_LOW_INDEX + (i * 2)]
                     + (dataReceived_DEC[SENSOR1_HIGH_INDEX + (i * 2)] << 8);
-            series.add((double)(timeFromStart + 20 * i)/1000.00, sensorData[i]);
+
+            int filterSensorData = filterData(sensorData[i]);
+            Log.d("Sensor Data", "Sensor Data: " + filterSensorData);
+            series.add((double)(timeFromStart + 20 * i)/1000.00, filterSensorData);
+
+            hrv_processing.setSignal(filterSensorData, timeFromStart + 20 * i);
+
+            if (hrv_processing.calcRRInterval()) {
+                hrv_processing.setPulseFind(false);
+                hrvSeries.add((double)(timeFromStart + 20 * i)/1000.00,
+                        hrv_processing.getIBI() );
+            }
         }
 
-        updateGraph();
+        updatePulseGraph();
+
     }
 
-    private void updateGraph() {
+    private void updatePulseGraph() {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -463,10 +569,27 @@ public class MainActivity extends AppCompatActivity {
                     renderer.setXAxisMin(timeX - numberOfSample);
                     renderer.setXAxisMax(timeX);
                 }
+                if (timeX > numberOfHRVSampel) {
+                    hrvRenderer.setXAxisMin(timeX - numberOfHRVSampel);
+                    hrvRenderer.setXAxisMax(timeX);
+                }
                 graphicalView.repaint();
+                hrvGraphicalView.repaint();
             }
         });
 
+    }
+
+    private int filterData(int sensorData) {
+        int i = 0, filterSensorData;
+        for (i = 0; i < 2; i++) {
+            filterData[i] = filterData[i + 1];
+        }
+        filterData[2] = sensorData;
+
+        filterSensorData = (filterData[0] + filterData[1] + filterData[2]) / 3;
+
+        return filterSensorData;
     }
 
 }
